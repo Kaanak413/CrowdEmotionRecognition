@@ -6000,3 +6000,6 @@ super/emotion_images/Scared/augmented_999.jpg
 super/emotion_images/Scared/augmented_1000.jpg
 emotion_recognition_model_20241023_065656.h5
 emotion_recognition_model.h5
+codes/emotion_recognition_model_20241028_151603.h5
+codes/emotion_recognition_model_20241028_151603.png
+codes/training_with_basic_CNN.png
