@@ -1,7 +1,7 @@
 from keras import layers, models
 import tensorflow as tf
 import matplotlib.pyplot as plt
-from keras import layers, models, applications
+from keras import layers, models, applications,regularizers
 from keras import callbacks
 import os
 from PIL import Image
@@ -55,15 +55,18 @@ val_dataset = tf.keras.utils.image_dataset_from_directory(
 def create_basic_cnn(input_shape=(600, 600, 3), num_classes=NUM_CLASSES):
     model = models.Sequential([
         layers.Conv2D(32, (3, 3), activation='relu', input_shape=input_shape),
+        layers.BatchNormalization(),
         layers.MaxPooling2D((2, 2)),
         layers.Conv2D(64, (3, 3), activation='relu'),
+        layers.BatchNormalization(),
         layers.MaxPooling2D((2, 2)),
         layers.Conv2D(128, (3, 3), activation='relu'),
         layers.MaxPooling2D((2, 2)),
         layers.Conv2D(128, (3, 3), activation='relu'),
+        layers.BatchNormalization(),
         layers.MaxPooling2D((2, 2)),
         layers.Flatten(),
-        layers.Dense(512, activation='relu'),
+        layers.Dense(512, activation = 'relu', kernel_regularizer =regularizers.l1_l2(0.01,0.01)),        
         layers.Dropout(0.5),
         layers.Dense(num_classes, activation='softmax')
     ])
@@ -101,7 +104,7 @@ def plot_hist(hist):
     plt.legend()
     plt.title("Model Loss")
 
-    plt.savefig("training_with_basic_CNN.png") 
+    plt.savefig("training_with_basic_CNNL1Regu.png") 
 
     
 

@@ -6,9 +6,10 @@ import os
 import cv2
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
-from keras import layers, models, applications
+from keras import layers, models, applications, regularizers
 from datetime import datetime  # Import for timestamp
-
+from keras import Optimizer
+from keras import callbacks
 # Path to your dataset
 path = '/home/kaan/Desktop/Projects-ML/EmotionRecognition/super/emotion_images/'
 dataset_path = os.listdir(path)
@@ -110,9 +111,56 @@ val_dataset = tf.keras.utils.image_dataset_from_directory(
     verbose=True
 )
 
-inputs = layers.Input(shape=(im_size, im_size, 3))
-outputs = applications.EfficientNetB7(include_top=True, weights=None, classes=NUM_CLASSES)(inputs)
-model = models.Model(inputs, outputs)
+initial_learning_rate = 0.001  # Starting learning rate
+# optimizer = Optimizer.Adam(learning_rate=initial_learning_rate)
+def create_custom_efficientnet(im_size=600, num_classes=NUM_CLASSES, base_dropout_rate=0.5, l2_reg=0.001):
+    # Define input layer
+    inputs = layers.Input(shape=(im_size, im_size, 3))
+    
+    # Load EfficientNetB7 without the top classification layer, but keep the global average pooling
+    base_model = applications.EfficientNetB7(include_top=False, weights=None, input_tensor=inputs)
+    
+    # Global average pooling to flatten features
+    x = layers.GlobalAveragePooling2D()(base_model.output)
+    
+    # Add a dense layer with L2 regularization and dropout
+    x = layers.Dense(512, activation='relu', kernel_regularizer=regularizers.l2(l2_reg))(x)
+    x = layers.BatchNormalization()(x)  # Add Batch Normalization after the dense layer
+    x = layers.Dropout(base_dropout_rate)(x)  # Add dropout
+
+    # Output layer with softmax activation for classification
+    outputs = layers.Dense(num_classes, activation='softmax')(x)
+    
+    # Create the model
+    model = models.Model(inputs, outputs)
+    
+    return model
+
+def create_custom_resnet50(im_size=224, num_classes=NUM_CLASSES, base_dropout_rate=0.5, l2_reg=0.001):
+    # Define input layer
+    inputs = layers.Input(shape=(im_size, im_size, 3))
+    
+    # Load ResNet50 without the top classification layer, but keep the global average pooling
+    base_model = applications.ResNet50(include_top=False, weights=None, input_tensor=inputs)
+    
+    # Global average pooling to flatten features
+    x = layers.GlobalAveragePooling2D()(base_model.output)
+    
+    # Add a dense layer with L2 regularization and dropout
+    x = layers.Dense(512, activation='relu', kernel_regularizer=regularizers.l2(l2_reg))(x)
+    x = layers.BatchNormalization()(x)  # Add Batch Normalization after the dense layer
+    x = layers.Dropout(base_dropout_rate)(x)  # Add dropout
+
+    # Output layer with softmax activation for classification
+    outputs = layers.Dense(num_classes, activation='softmax')(x)
+    
+    # Create the model
+    model = models.Model(inputs, outputs)
+    
+    return model
+im_size = 600  # Adjust based on your input image size
+model = create_custom_efficientnet(im_size=im_size, num_classes=NUM_CLASSES)
+model = create_custom_resnet50(im_size=im_size, num_classes=NUM_CLASSES)
 
 # Compile the model
 model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
@@ -124,7 +172,7 @@ model.summary()
 with tf.device('/GPU:0'):  # Ensure GPU is used
     hist = model.fit(
         train_dataset,
-        epochs=1,
+        epochs=200,
         validation_data=val_dataset,
     )
 
